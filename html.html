@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks Dashboard 2025</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      background-color: #f9f9f9;
+    }
+
+    h1 {
+      color: white;
+      font-size: 20px;
+      text-align: center;
+      padding: 10px 0;
+      background-color: #00BFFF;
+      margin: 0;
+      font-weight: bold;
+    }
+
+    .top-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f4f4f4;
+      padding: 10px;
+    }
+
+    .search-bar {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .search-bar input {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 2px solid #ddd;
+    }
+
+    .metrics-container {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .metric-card {
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 23%;
+      margin: 5px;
+    }
+
+    .metric-card ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .metric-card ul li {
+      margin: 5px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background-color: #fff;
+      table-layout: auto;
+      position: relative;
+    }
+
+    table, th, td {
+      border: 1px solid #cad;
+      padding: 8px;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    th {
+      background-color: #9b59b6;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f1f1f1;
+    }
+
+    tr:hover {
+      background-color: #eaeaea;
+      cursor: pointer;
+    }
+
+    #tasksTable input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      border: none;
+      padding: 5px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .metric-card {
+        width: 45%;
+      }
+
+      table, th, td {
+        font-size: 10px;
+        padding: 5px;
+      }
+    }
+
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      border: 2px solid #ddd;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      display: none;
+      z-index: 3;
+    }
+
+    .popup h3 {
+      margin: 0 0 10px;
+    }
+
+    .popup button {
+      background-color: #00BFFF;
+      color: white;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .popup button:hover {
+      background-color: #007ACC;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Tasks Dashboard 2025</h1>
+
+<div class="top-section">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search for a task..." onkeyup="filterTable()">
+  </div>
+  <div class="metrics-container">
+    <div class="metric-card">
+      <h2>LOCO TYPE</h2>
+      <ul id="locoTypeList">
+        <!-- LOCO TYPE List dynamically injected -->
+      </ul>
+    </div>
+    <div class="metric-card">
+      <h2>Shed</h2>
+      <ul id="shedList">
+        <!-- Shed List dynamically injected -->
+      </ul>
+    </div>
+    <div class="metric-card">
+      <h2>Failure Responsibility</h2>
+      <ul id="failureResponsibilityList">
+        <!-- Failure Responsibility List dynamically injected -->
+      </ul>
+    </div>
+  </div>
+</div>
+
+<table id="tasksTable">
+  <thead>
+    <tr>
+      <th><input type="text" placeholder="ID" onkeyup="filterColumn(0)"></th>
+      <th><input type="text" placeholder="Date" onkeyup="filterColumn(1)"></th>
+      <th><input type="text" placeholder="Defect Type" onkeyup="filterColumn(2)"></th>
+      <th><input type="text" placeholder="Loco No" onkeyup="filterColumn(3)"></th>
+      <th><input type="text" placeholder="Loco Type" onkeyup="filterColumn(4)"></th>
+      <th><input type="text" placeholder="Shed" onkeyup="filterColumn(5)"></th>
+      <th><input type="text" placeholder="Train No." onkeyup="filterColumn(6)"></th>
+      <!-- Add additional columns here -->
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Data dynamically injected -->
+  </tbody>
+</table>
+
+<div class="overlay" id="overlay" onclick="closePopup()"></div>
+<div class="popup" id="popup">
+  <h3>Row Details</h3>
+  <div id="popupContent"></div>
+  <button onclick="closePopup()">Close</button>
+</div>
+
+<script>
+  const sheetId = "11gyEnzbRSrqGEE1so9iP5itKDzK49CXnJpraFAsSmhA"; // Replace with your Google Sheet ID
+  const sheetName = "Tasks overall";
+  const apiKey = "AIzaSyBkKVtdfFbFfdFE8FqSaUGZvptxj0Fysco"; // Replace with your API Key
+  const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}!A2:AM?key=${apiKey}`;
+  let taskData = [];
+  let filteredData = [];
+
+  async function fetchData() {
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      taskData = data.values;
+      filteredData = taskData;
+      displayData(filteredData);
+      updateMetrics(filteredData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  }
+
+  function displayData(data) {
+    const tableBody = document.getElementById('tasksTable').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = '';
+    data.forEach(row => {
+      const rowElement = document.createElement("tr");
+      rowElement.onclick = () => showPopup(row);
+      row.forEach(cell => {
+        const cellElement = document.createElement("td");
+        cellElement.textContent = cell;
+        rowElement.appendChild(cellElement);
+      });
+      tableBody.appendChild(rowElement);
+    });
+  }
+
+  function updateMetrics(data) {
+    const locoTypeCounts = countOccurrences(data.map(row => row[4]));
+    const shedCounts = countOccurrences(data.map(row => row[5]));
+    const failureResponsibilityCounts = countOccurrences(data.map(row => row[34]));
+    renderMetricList("locoTypeList", locoTypeCounts, "locoTypeFilter");
+    renderMetricList("shedList", shedCounts, "shedFilter");
+    renderMetricList("failureResponsibilityList", failureResponsibilityCounts, "failureRespFilter");
+  }
+
+  function countOccurrences(array) {
+    return array.reduce((acc, item) => {
+      if (item) acc[item] = (acc[item] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  function renderMetricList(listId, counts, filterClass) {
+    const listElement = document.getElementById(listId);
+    listElement.innerHTML = '';
+    for (const [key, value] of Object.entries(counts)) {
+      const listItem = document.createElement('li');
+      listItem.innerHTML = `<input type="checkbox" class="${filterClass}" value="${key}" onchange="applyFilters()"> ${key}: ${value}`;
+      listElement.appendChild(listItem);
+    }
+  }
+
+  function applyFilters() {
+    const locoTypeFilter = Array.from(document.querySelectorAll('.locoTypeFilter:checked')).map(cb => cb.value);
+    const shedFilter = Array.from(document.querySelectorAll('.shedFilter:checked')).map(cb => cb.value);
+    const failureRespFilter = Array.from(document.querySelectorAll('.failureRespFilter:checked')).map(cb => cb.value);
+
+    filteredData = taskData.filter(row => {
+      return (!locoTypeFilter.length || locoTypeFilter.includes(row[4])) &&
+             (!shedFilter.length || shedFilter.includes(row[5])) &&
+             (!failureRespFilter.length || failureRespFilter.includes(row[34]));
+    });
+
+    displayData(filteredData);
+  }
+
+  function filterTable() {
+    const searchInput = document.getElementById("searchInput").value.toLowerCase();
+    filteredData = taskData.filter(row =>
+      row.some(cell => cell.toLowerCase().includes(searchInput))
+    );
+    displayData(filteredData);
+  }
+
+  function filterColumn(index) {
+    const inputs = Array.from(document.querySelectorAll('#tasksTable thead input'));
+    filteredData = taskData.filter(row => {
+      return inputs.every((input, colIndex) => {
+        return input.value === "" || row[colIndex].toLowerCase().includes(input.value.toLowerCase());
+      });
+    });
+    displayData(filteredData);
+  }
+
+  function showPopup(row) {
+    const popup = document.getElementById("popup");
+    const overlay = document.getElementById("overlay");
+    const popupContent = document.getElementById("popupContent");
+
+    popupContent.innerHTML = row.map((cell, index) => `<p><strong>Column ${index + 1}:</strong> ${cell}</p>`).join("");
+    popup.style.display = "block";
+    overlay.style.display = "block";
+  }
+
+  function closePopup() {
+    document.getElementById("popup").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+  }
+
+  fetchData();
+</script>
+
+
+
+ 
