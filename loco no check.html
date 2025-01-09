@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Filter Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    width: 96%;
+    margin: 10px auto;
+}
+
+input, select {
+    padding: 5px;
+    margin: 10px 0;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px 5px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: none;
+    background-color: #3498db;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+#dataContainer {
+    border: 1px solid #ddd;
+    background: #fff;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    height: 830px;
+    overflow-y: scroll;
+    position: relative;
+    width: 100%;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #3498db;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border-bottom: 2px solid #ddd;
+    padding: 10px;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.data-table td a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.data-table td a:hover {
+    text-decoration: underline;
+}
+
+#tooltip {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    padding: 10px;
+    width: 600px;
+}
+
+#modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+#modalContent {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 60%;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+#modalContent h2 {
+    margin-top: 0;
+}
+
+#modalContent button {
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+#modalContent button:hover {
+    background-color: #2980b9;
+}
+</style>
+<script>
+var headers = [];
+var workbook;
+
+function processFile(event) {
+    var file = event.target.files[0];
+    var reader = new FileReader();
+
+    reader.onload = function(e) {
+        var data = e.target.result;
+        workbook = XLSX.read(data, {type: 'binary'});
+
+        // Populate sheet dropdown menu
+        var sheetDropdown = document.getElementById("sheetDropdown");
+        sheetDropdown.innerHTML = "";
+        workbook.SheetNames.forEach(function(sheetName) {
+            var option = document.createElement("option");
+            option.text = sheetName;
+            option.value = sheetName;
+            sheetDropdown.add(option);
+        });
+
+        // Automatically process the first sheet
+        processSheet(workbook.SheetNames[0]);
+    };
+
+    reader.readAsBinaryString(file);
+}
+
+function processSheet(sheetName) {
+    var worksheet = workbook.Sheets[sheetName];
+
+    // Convert worksheet to JSON format
+    var jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+    // Display data in the border div
+    var htmlData = "<table class='data-table'>";
+    headers = Object.keys(jsonData[0]);
+    htmlData += "<thead><tr>";
+    for (var i = 0; i < headers.length; i++) {
+        htmlData += "<th>" + headers[i] + "</th>";
+    }
+    htmlData += "</tr></thead><tbody>";
+    for (var i = 0; i < jsonData.length; i++) {
+        htmlData += "<tr>";
+        for (var j = 0; j < headers.length; j++) {
+            if (headers[j] === "Loco Number") {
+                var locoNumber = jsonData[i][headers[j]];
+                htmlData += `<td><a href='javascript:void(0);' 
+                    onmouseover='showTooltip(event, ${locoNumber})' 
+                    onmouseout='hideTooltip()'>${locoNumber}</a></td>`;
+            } else {
+                htmlData += "<td>" + jsonData[i][headers[j]] + "</td>";
+            }
+        }
+        htmlData += "</tr>";
+    }
+    htmlData += "</tbody></table>";
+    document.getElementById("dataContainer").innerHTML = htmlData;
+
+    // Populate dropdown menu with column names
+    var dropdown = document.getElementById("dropdownMenu");
+    dropdown.innerHTML = "<option value=''>Select Column</option>"; // Reset dropdown
+    for (var i = 0; i < headers.length; i++) {
+        var option = document.createElement("option");
+        option.text = headers[i];
+        dropdown.add(option);
+    }
+}
+
+function filterData() {
+    var selectedColumn = document.getElementById("dropdownMenu").value;
+    var selectedValue = document.getElementById("dropdownValue").value.toLowerCase();
+    var table = document.getElementsByTagName("table")[0];
+    var rows = table.getElementsByTagName("tr");
+    for (var i = 1; i < rows.length; i++) {
+        var cells = rows[i].getElementsByTagName("td");
+        var cellValue = cells[headers.indexOf(selectedColumn)].innerHTML.toLowerCase();
+        if (selectedValue === "" || cellValue.includes(selectedValue)) {
+            rows[i].style.display = "";
+        } else {
+            rows[i].style.display = "none";
+        }
+    }
+}
+
+function showTooltip(event, locoNumber) {
+    var tooltip = document.getElementById("tooltip");
+    tooltip.innerHTML = `
+        <p>Loco Number: ${locoNumber}</p>
+        <iframe src="http://10.50.88.50/Loco_bank/detailsofLoco.aspx?Loco_no=${locoNumber}" 
+            style="width: 100%; height: 200px; border: none;"></iframe>
+    `;
+    tooltip.style.display = "block";
+    tooltip.style.left = event.pageX + 20 + "px";
+    tooltip.style.top = event.pageY + 20 + "px";
+}
+
+function hideTooltip() {
+    var tooltip = document.getElementById("tooltip");
+    tooltip.style.display = "none";
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+window.onclick = function(event) {
+    if (event.target == document.getElementById("modal")) {
+        closeModal();
+    }
+}
+</script>
+</head>
+<body>
+<div class="container">
+    <!-- Excel file upload button -->
+    <input type="file" id="fileInput" onchange="processFile(event)" accept=".xlsx, .xls">
+
+    <!-- Dropdown menu for sheet selection -->
+    <select id="sheetDropdown" onchange="processSheet(this.value)">
+        <option value="">Select Sheet</option>
+    </select>
+
+    <!-- Dropdown menu for column selection -->
+    <select id="dropdownMenu" onchange="filterData()">
+        <option value="">Select Column</option>
+    </select>
+
+    <!-- Search bar -->
+    <input type="text" id="dropdownValue" onkeyup="filterData()" placeholder="Enter Value">
+
+    <!-- Buttons for additional functionality -->
+    <button onclick="processSheet(document.getElementById('sheetDropdown').value)">Refresh Data</button>
+    <button onclick="filterData()">Apply Filter</button>
+    <button onclick="closeModal()">Close Modal</button>
+
+    <div id="dataContainer"></div>
+
+    <!-- Tooltip for loco number -->
+    <div id="tooltip"></div>
+
+    <!-- Modal for displaying popup content -->
+    <div id="modal">
+        <div id="modalContent">
+            <h2>Modal Header</h2>
+            <p>Modal Content</p>
+            <button onclick="closeModal()">Close</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
